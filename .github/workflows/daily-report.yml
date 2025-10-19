@@ -1,0 +1,88 @@
+name: Daily Velocity Report
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Runs daily at 21:30 IST (16:00 UTC)
+    - cron: "0 16 * * *"
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create .env from secrets
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+          GITLAB_PROJECT_IDS: ${{ secrets.GITLAB_PROJECT_IDS }}
+          DISCOVER_MODE: ${{ secrets.DISCOVER_MODE }}
+          GROUP_IDS: ${{ secrets.GROUP_IDS }}
+          INCLUDE_SUBGROUPS: ${{ secrets.INCLUDE_SUBGROUPS }}
+          USER_ID: ${{ secrets.USER_ID }}
+          ARCHIVED: ${{ secrets.ARCHIVED }}
+          VISIBILITY: ${{ secrets.VISIBILITY }}
+          NAME_INCLUDE_REGEX: ${{ secrets.NAME_INCLUDE_REGEX }}
+          NAME_EXCLUDE_REGEX: ${{ secrets.NAME_EXCLUDE_REGEX }}
+          EXTRA_PROJECT_IDS: ${{ secrets.EXTRA_PROJECT_IDS }}
+          EXCLUDE_PROJECT_IDS: ${{ secrets.EXCLUDE_PROJECT_IDS }}
+          WINDOW_MODE: ${{ secrets.WINDOW_MODE }}
+          ORG_LABEL_INTERNAL: ${{ secrets.ORG_LABEL_INTERNAL }}
+          ORG_LABEL_CLIENT: ${{ secrets.ORG_LABEL_CLIENT }}
+          CLIENT_PROJECT_IDS: ${{ secrets.CLIENT_PROJECT_IDS }}
+          REPORT_TITLE: ${{ secrets.REPORT_TITLE }}
+          REPORT_TZ: ${{ secrets.REPORT_TZ }}
+          GITHUB_TOKEN_SECRET: ${{ secrets.GITHUB_TOKEN_SECRET }}
+          GITHUB_REPOS: ${{ secrets.GITHUB_REPOS }}
+          GITHUB_DISCOVER_MODE: ${{ secrets.GITHUB_DISCOVER_MODE }}
+          GITHUB_ORGS: ${{ secrets.GITHUB_ORGS }}
+          GITHUB_USER: ${{ secrets.GITHUB_USER }}
+          GITHUB_REPO_INCLUDE_REGEX: ${{ secrets.GITHUB_REPO_INCLUDE_REGEX }}
+          GITHUB_REPO_EXCLUDE_REGEX: ${{ secrets.GITHUB_REPO_EXCLUDE_REGEX }}
+          GITHUB_EXTRA_REPOS: ${{ secrets.GITHUB_EXTRA_REPOS }}
+          GITHUB_EXCLUDE_REPOS: ${{ secrets.GITHUB_EXCLUDE_REPOS }}
+        run: |
+          cat <<'EOF' > .env
+          DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+          GITLAB_TOKEN=${GITLAB_TOKEN}
+          GITLAB_PROJECT_IDS=${GITLAB_PROJECT_IDS}
+          DISCOVER_MODE=${DISCOVER_MODE}
+          GROUP_IDS=${GROUP_IDS}
+          INCLUDE_SUBGROUPS=${INCLUDE_SUBGROUPS}
+          USER_ID=${USER_ID}
+          ARCHIVED=${ARCHIVED}
+          VISIBILITY=${VISIBILITY}
+          NAME_INCLUDE_REGEX=${NAME_INCLUDE_REGEX}
+          NAME_EXCLUDE_REGEX=${NAME_EXCLUDE_REGEX}
+          EXTRA_PROJECT_IDS=${EXTRA_PROJECT_IDS}
+          EXCLUDE_PROJECT_IDS=${EXCLUDE_PROJECT_IDS}
+          WINDOW_MODE=${WINDOW_MODE}
+          ORG_LABEL_INTERNAL=${ORG_LABEL_INTERNAL}
+          ORG_LABEL_CLIENT=${ORG_LABEL_CLIENT}
+          CLIENT_PROJECT_IDS=${CLIENT_PROJECT_IDS}
+          REPORT_TITLE=${REPORT_TITLE}
+          REPORT_TZ=${REPORT_TZ}
+          GITHUB_TOKEN=${GITHUB_TOKEN_SECRET}
+          GITHUB_REPOS=${GITHUB_REPOS}
+          GITHUB_DISCOVER_MODE=${GITHUB_DISCOVER_MODE}
+          GITHUB_ORGS=${GITHUB_ORGS}
+          GITHUB_USER=${GITHUB_USER}
+          GITHUB_REPO_INCLUDE_REGEX=${GITHUB_REPO_INCLUDE_REGEX}
+          GITHUB_REPO_EXCLUDE_REGEX=${GITHUB_REPO_EXCLUDE_REGEX}
+          GITHUB_EXTRA_REPOS=${GITHUB_EXTRA_REPOS}
+          GITHUB_EXCLUDE_REPOS=${GITHUB_EXCLUDE_REPOS}
+          EOF
+
+      - name: Run velocity report
+        run: npm run report

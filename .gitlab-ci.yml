@@ -1,0 +1,39 @@
+# This pipeline runs daily at 9:30 PM IST (cron: 30 21 * * *, tz: Asia/Kolkata)
+stages: [report]
+
+velocity:
+  stage: report
+  image: node:20
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - when: manual
+  script:
+    # Configure DISCOVER_* variables via Settings → CI/CD → Variables
+    - node -v
+    - npm ci
+    - |
+      node -e "
+        const fs = require('fs');
+        const envLines = [
+          'DISCORD_WEBHOOK_URL=' + (process.env.DISCORD_WEBHOOK_URL || ''),
+          'GITLAB_TOKEN=' + (process.env.GITLAB_TOKEN || ''),
+          'GITLAB_PROJECT_IDS=' + (process.env.GITLAB_PROJECT_IDS || ''),
+          'WINDOW_MODE=' + (process.env.WINDOW_MODE || 'DAILY'),
+          'ORG_LABEL_INTERNAL=' + (process.env.ORG_LABEL_INTERNAL || 'Internal'),
+          'ORG_LABEL_CLIENT=' + (process.env.ORG_LABEL_CLIENT || 'Client'),
+          'CLIENT_PROJECT_IDS=' + (process.env.CLIENT_PROJECT_IDS || ''),
+          'REPORT_TITLE=' + (process.env.REPORT_TITLE || 'GitLab Engineering Team Velocity'),
+          'REPORT_TZ=' + (process.env.REPORT_TZ || 'Asia/Kolkata'),
+          'GITHUB_TOKEN=' + (process.env.GITHUB_TOKEN || ''),
+          'GITHUB_REPOS=' + (process.env.GITHUB_REPOS || ''),
+          'GITHUB_DISCOVER_MODE=' + (process.env.GITHUB_DISCOVER_MODE || 'org'),
+          'GITHUB_ORGS=' + (process.env.GITHUB_ORGS || ''),
+          'GITHUB_USER=' + (process.env.GITHUB_USER || ''),
+          'GITHUB_REPO_INCLUDE_REGEX=' + (process.env.GITHUB_REPO_INCLUDE_REGEX || ''),
+          'GITHUB_REPO_EXCLUDE_REGEX=' + (process.env.GITHUB_REPO_EXCLUDE_REGEX || ''),
+          'GITHUB_EXTRA_REPOS=' + (process.env.GITHUB_EXTRA_REPOS || ''),
+          'GITHUB_EXCLUDE_REPOS=' + (process.env.GITHUB_EXCLUDE_REPOS || ''),
+        ].join('\n');
+        fs.writeFileSync('.env', envLines);
+      "
+    - node index.js
