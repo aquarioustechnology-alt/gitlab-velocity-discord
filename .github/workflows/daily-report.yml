@@ -43,15 +43,15 @@ jobs:
           CLIENT_PROJECT_IDS: ${{ secrets.CLIENT_PROJECT_IDS }}
           REPORT_TITLE: ${{ secrets.REPORT_TITLE }}
           REPORT_TZ: ${{ secrets.REPORT_TZ }}
-          GITHUB_TOKEN_SECRET: ${{ secrets.GITHUB_TOKEN_SECRET }}
-          GITHUB_REPOS: ${{ secrets.GITHUB_REPOS }}
-          GITHUB_DISCOVER_MODE: ${{ secrets.GITHUB_DISCOVER_MODE }}
-          GITHUB_ORGS: ${{ secrets.GITHUB_ORGS }}
-          GITHUB_USER: ${{ secrets.GITHUB_USER }}
-          GITHUB_REPO_INCLUDE_REGEX: ${{ secrets.GITHUB_REPO_INCLUDE_REGEX }}
-          GITHUB_REPO_EXCLUDE_REGEX: ${{ secrets.GITHUB_REPO_EXCLUDE_REGEX }}
-          GITHUB_EXTRA_REPOS: ${{ secrets.GITHUB_EXTRA_REPOS }}
-          GITHUB_EXCLUDE_REPOS: ${{ secrets.GITHUB_EXCLUDE_REPOS }}
+          GH_TOKEN_SECRET: ${{ secrets.GH_TOKEN_SECRET }}
+          GH_REPOS: ${{ secrets.GH_REPOS }}
+          GH_DISCOVER_MODE: ${{ secrets.GH_DISCOVER_MODE }}
+          GH_ORGS: ${{ secrets.GH_ORGS }}
+          GH_USER: ${{ secrets.GH_USER }}
+          GH_REPO_INCLUDE_REGEX: ${{ secrets.GH_REPO_INCLUDE_REGEX }}
+          GH_REPO_EXCLUDE_REGEX: ${{ secrets.GH_REPO_EXCLUDE_REGEX }}
+          GH_EXTRA_REPOS: ${{ secrets.GH_EXTRA_REPOS }}
+          GH_EXCLUDE_REPOS: ${{ secrets.GH_EXCLUDE_REPOS }}
         run: |
           cat <<'EOF' > .env
           DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
@@ -73,15 +73,15 @@ jobs:
           CLIENT_PROJECT_IDS=${CLIENT_PROJECT_IDS}
           REPORT_TITLE=${REPORT_TITLE}
           REPORT_TZ=${REPORT_TZ}
-          GITHUB_TOKEN=${GITHUB_TOKEN_SECRET}
-          GITHUB_REPOS=${GITHUB_REPOS}
-          GITHUB_DISCOVER_MODE=${GITHUB_DISCOVER_MODE}
-          GITHUB_ORGS=${GITHUB_ORGS}
-          GITHUB_USER=${GITHUB_USER}
-          GITHUB_REPO_INCLUDE_REGEX=${GITHUB_REPO_INCLUDE_REGEX}
-          GITHUB_REPO_EXCLUDE_REGEX=${GITHUB_REPO_EXCLUDE_REGEX}
-          GITHUB_EXTRA_REPOS=${GITHUB_EXTRA_REPOS}
-          GITHUB_EXCLUDE_REPOS=${GITHUB_EXCLUDE_REPOS}
+          GITHUB_TOKEN=${GH_TOKEN_SECRET}
+          GITHUB_REPOS=${GH_REPOS}
+          GITHUB_DISCOVER_MODE=${GH_DISCOVER_MODE}
+          GITHUB_ORGS=${GH_ORGS}
+          GITHUB_USER=${GH_USER}
+          GITHUB_REPO_INCLUDE_REGEX=${GH_REPO_INCLUDE_REGEX}
+          GITHUB_REPO_EXCLUDE_REGEX=${GH_REPO_EXCLUDE_REGEX}
+          GITHUB_EXTRA_REPOS=${GH_EXTRA_REPOS}
+          GITHUB_EXCLUDE_REPOS=${GH_EXCLUDE_REPOS}
           EOF
 
       - name: Run velocity report
