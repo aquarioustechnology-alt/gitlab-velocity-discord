@@ -32,6 +32,33 @@ You can also provide a static list via `GITHUB_REPOS=owner/repo,owner/repo`, and
 
 Add the GitHub variables alongside your GitLab secrets under **Settings -> CI/CD -> Variables**.
 
+### Repository Activity Alerts (NEW)
+
+The bot now includes alerts to help track repository activity:
+
+**Alert for Inactive Repositories:**
+- Shows repos that were recently active but have no activity today
+- Helps identify projects that need attention
+- Configurable threshold (default: 120 days)
+
+**Alert for New Repositories:**
+- Highlights repos created in the last N days (default: 30 days)
+- Shows whether they have any activity yet
+- Ensures new projects don't get forgotten
+
+**Configuration Variables:**
+
+```env
+ALERT_INACTIVE_REPOS=true                    # Enable/disable alerts (default: true)
+ALERT_STALE_THRESHOLD_DAYS=120              # Repos active within this many days will trigger alerts if inactive today
+ALERT_NEW_REPO_DAYS=30                       # Repos created within this many days are considered "new"
+```
+
+**How it works:**
+- **New Repos Section:** Shows all repos created in the last 30 days with their age and activity status
+- **No Activity Today Section:** Shows repos that were active in the last 120 days but have no activity today
+- **Stale Repos:** Repos inactive for more than 120 days are excluded from alerts (shown only in the summary)
+
 ### How to get your Group ID (once)
 
 In GitLab, open your Group -> Settings -> General -> you’ll see Group ID.  

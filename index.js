@@ -575,6 +575,82 @@ function formatInactiveSummary(projects) {
   return `_ℹ️ No tracked activity in ${projects.length} repo${projects.length === 1 ? "" : "s"} this window._`;
 }
 
+function formatInactivityAndNewRepoAlert(inactiveProjects, newRepos, staleThresholdDays, newRepoThresholdDays) {
+  const sections = [];
+  
+  // Section 1: New Repositories
+  if (newRepos && newRepos.length > 0) {
+    const lines = ["**🆕 New Repositories**"];
+    lines.push(`_These repos were created recently (within last ${newRepoThresholdDays} days):_`);
+    
+    const sortedByCreation = [...newRepos].sort((a, b) => {
+      const aDate = a.createdDate || 0;
+      const bDate = b.createdDate || 0;
+      return dayjs(bDate).valueOf() - dayjs(aDate).valueOf();
+    });
+    
+    for (const project of sortedByCreation.slice(0, 10)) {
+      const displayName = project.projectName || project.projectPath || String(project.projectId);
+      const icon = isGithubProjectId(project.projectId) ? "🐙" : "🦊";
+      const daysOld = project.createdDate 
+        ? dayjs().diff(dayjs(project.createdDate), "day")
+        : null;
+      const age = daysOld !== null ? ` (${daysOld}d old)` : "";
+      
+      // Check if it has any activity
+      const hasActivity = project.commits?.length || 
+                         project.mrsOpened?.length || 
+                         project.mrsMerged?.length ||
+                         project.issuesOpened?.length || 
+                         project.issuesClosed?.length;
+      
+      const status = hasActivity ? "✅" : "⚠️ No activity yet";
+      lines.push(`${icon} ${displayName}${age} — ${status}`);
+    }
+    
+    if (sortedByCreation.length > 10) {
+      const remaining = sortedByCreation.length - 10;
+      lines.push(`…and ${remaining} more new repo${remaining === 1 ? "" : "s"}.`);
+    }
+    
+    sections.push(lines.join("\n"));
+  }
+  
+  // Section 2: Inactive Today (Recently Active Repos)
+  if (inactiveProjects && inactiveProjects.length > 0) {
+    const lines = ["**⚠️ No Activity Today**"];
+    lines.push(`_Recently active repos (within ${staleThresholdDays}d) with no activity today:_`);
+    
+    const sortedByLastActivity = [...inactiveProjects].sort((a, b) => {
+      const aDate = a.lastActivityDate || 0;
+      const bDate = b.lastActivityDate || 0;
+      return dayjs(bDate).valueOf() - dayjs(aDate).valueOf();
+    });
+    
+    const display = sortedByLastActivity.slice(0, 10);
+    for (const project of display) {
+      const displayName = project.projectName || project.projectPath || String(project.projectId);
+      const icon = isGithubProjectId(project.projectId) ? "🐙" : "🦊";
+      const daysSince = project.lastActivityDate 
+        ? dayjs().diff(dayjs(project.lastActivityDate), "day")
+        : null;
+      const lastActive = daysSince !== null 
+        ? ` (${daysSince}d since last activity)` 
+        : "";
+      lines.push(`${icon} ${displayName}${lastActive}`);
+    }
+    
+    if (sortedByLastActivity.length > display.length) {
+      const remaining = sortedByLastActivity.length - display.length;
+      lines.push(`…and ${remaining} more inactive repo${remaining === 1 ? "" : "s"}.`);
+    }
+    
+    sections.push(lines.join("\n"));
+  }
+  
+  return sections.length > 0 ? sections.join("\n\n") : null;
+}
+
 function chunkMessage(text, limit = 1800) {
   const chunks = [];
   if (!text) {
@@ -714,6 +790,23 @@ async function collectForProject(projectId, since, until, monthStart) {
     projectWebUrl
   });
 
+  // Calculate last activity date from all activities
+  const allDates = [
+    ...commits.map(c => c.created_at),
+    ...mrsOpened.map(mr => mr.created_at),
+    ...mrsMerged.map(mr => mr.merged_at),
+    ...issuesOpened.map(i => i.created_at),
+    ...issuesClosed.map(i => i.closed_at)
+  ].filter(Boolean);
+
+  const lastActivityDate = allDates.length 
+    ? allDates.reduce((latest, date) => {
+        return dayjs(date).isAfter(dayjs(latest)) ? date : latest;
+      })
+    : (projectInfo?.last_activity_at || null);
+
+  const createdDate = projectInfo?.created_at || null;
+
   return {
     projectId,
     projectName,
@@ -726,7 +819,9 @@ async function collectForProject(projectId, since, until, monthStart) {
     issuesOpened: issuesOpened.map(simplifyIssue),
     issuesClosed: issuesClosed.map(simplifyIssue),
     monthIssuesOpened: monthIssuesOpened.map(simplifyIssue),
-    monthIssuesClosed: monthIssuesClosed.map(simplifyIssue)
+    monthIssuesClosed: monthIssuesClosed.map(simplifyIssue),
+    lastActivityDate,
+    createdDate
   };
 }
 
@@ -929,6 +1024,23 @@ async function collectForGithubRepo(fullName, since, until, monthStart) {
     dayjs(issue.closed_at).isBefore(untilMoment)
   );
 
+  // Calculate last activity date from all activities
+  const allDates = [
+    ...commits.map(c => c.created_at),
+    ...mrsOpened.map(mr => mr.created_at),
+    ...mrsMerged.map(mr => mr.merged_at),
+    ...issuesOpened.map(i => i.created_at),
+    ...issuesClosed.map(i => i.closed_at)
+  ].filter(Boolean);
+
+  const lastActivityDate = allDates.length 
+    ? allDates.reduce((latest, date) => {
+        return dayjs(date).isAfter(dayjs(latest)) ? date : latest;
+      })
+    : (repoInfo?.updated_at || repoInfo?.pushed_at || null);
+
+  const createdDate = repoInfo?.created_at || null;
+
   return {
     projectId: projectPath,
     projectName,
@@ -941,7 +1053,9 @@ async function collectForGithubRepo(fullName, since, until, monthStart) {
     issuesOpened,
     issuesClosed,
     monthIssuesOpened,
-    monthIssuesClosed
+    monthIssuesClosed,
+    lastActivityDate,
+    createdDate
   };
 }
 
@@ -985,6 +1099,36 @@ async function main() {
 
   const activeResults = results.filter(hasActivity);
   const inactiveResults = results.filter(project => !hasActivity(project));
+
+  // Alert Configuration
+  const ALERT_INACTIVE = String(process.env.ALERT_INACTIVE_REPOS || "true").toLowerCase() === "true";
+  const STALE_THRESHOLD_DAYS = Number(process.env.ALERT_STALE_THRESHOLD_DAYS || 120);
+  const NEW_REPO_THRESHOLD_DAYS = Number(process.env.ALERT_NEW_REPO_DAYS || 30);
+
+  // Identify newly created repos (created within NEW_REPO_THRESHOLD_DAYS)
+  const newRepos = results.filter(project => {
+    if (!project.createdDate) return false;
+    const daysSinceCreation = dayjs().diff(dayjs(project.createdDate), "day");
+    return daysSinceCreation <= NEW_REPO_THRESHOLD_DAYS;
+  });
+
+  // Filter inactive repos to only include recently active ones (not including new repos)
+  const recentlyActiveButInactiveToday = inactiveResults.filter(project => {
+    // Exclude new repos from this list (they'll be shown separately)
+    if (newRepos.includes(project)) return false;
+    
+    if (!project.lastActivityDate) return false;
+    const daysSinceActivity = dayjs().diff(dayjs(project.lastActivityDate), "day");
+    return daysSinceActivity <= STALE_THRESHOLD_DAYS;
+  });
+
+  // Truly stale repos (older than threshold and not new)
+  const trulyStaledInactive = inactiveResults.filter(project => {
+    if (newRepos.includes(project)) return false;
+    if (!project.lastActivityDate) return true;
+    const daysSinceActivity = dayjs().diff(dayjs(project.lastActivityDate), "day");
+    return daysSinceActivity > STALE_THRESHOLD_DAYS;
+  });
 
   const totalCommits = activeResults.reduce((sum, project) => sum + project.commits.length, 0);
   const totalMROpened = activeResults.reduce((sum, project) => sum + project.mrsOpened.length, 0);
@@ -1058,13 +1202,25 @@ async function main() {
     activeResults.length ? activeResults : results.slice(0, 8),
     { totalMRMerged, totalCommits }
   );
-  const inactiveSummaryBlock = formatInactiveSummary(inactiveResults);
+  
+  // Enhanced alert with both new repos and inactive repos
+  const inactiveAlertBlock = ALERT_INACTIVE 
+    ? formatInactivityAndNewRepoAlert(
+        recentlyActiveButInactiveToday, 
+        newRepos, 
+        STALE_THRESHOLD_DAYS,
+        NEW_REPO_THRESHOLD_DAYS
+      )
+    : null;
+  
+  const inactiveSummaryBlock = formatInactiveSummary(trulyStaledInactive);
 
   const organizationalBlocks = [
     `📊 **${REPORT_TITLE} – ${label}**`,
     summaryLine,
     teamMetricsBlock,
     velocityHighlightBlock,
+    inactiveAlertBlock,
     bugActivityBlock
   ].filter(Boolean);
 
